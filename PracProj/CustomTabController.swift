@@ -11,9 +11,10 @@ class TabViewController : UITabBarController{
     var user : User? = nil
     override func viewDidLoad() {
         super.viewDidLoad()
-        let homeTab = viewControllers?[0] as! HomeViewController
-        let profileTab = viewControllers?[1] as! ProfileViewController
+        let homeTab = (viewControllers?[0] as! UINavigationController).viewControllers[0] as! HomeViewController
         
+        let profileTab = viewControllers?[1] as! ProfileViewController
+//        print(viewControllers?[0])
             homeTab.name = user?.name ?? nil
             profileTab.email = user?.email ?? nil
         

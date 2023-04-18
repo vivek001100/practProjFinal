@@ -6,13 +6,31 @@
 //
 
 import UIKit
+import Firebase
 
 @main
-class AppDelegate: UIResponder, UIApplicationDelegate {
+class AppDelegate: UIResponder, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate{
 
-
-
+    func application(
+        _ application: UIApplication,
+        didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data
+    ) {
+        
+        Messaging.messaging().apnsToken = deviceToken
+        Messaging.messaging().token { token, error in
+            debugPrint(token ?? "","fcm token")
+            NotificationCenter.default.post(
+                name: Notification.Name("FCMTokenRegistered"),
+                object: nil,
+                userInfo: nil)
+        }
+    }
+    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        registerForPushNotifications()
+        FirebaseApp.configure()
+        Messaging.messaging().delegate = self
+        
         // Override point for customization after application launch.
         return true
     }
@@ -30,7 +48,47 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // If any sessions were discarded while the application was not running, this will be called shortly after application:didFinishLaunchingWithOptions.
         // Use this method to release any resources that were specific to the discarded scenes, as they will not return.
     }
+    
+    
+    func registerForPushNotifications() {
+        
+        UNUserNotificationCenter.current().delegate = self
 
+        let authOptions: UNAuthorizationOptions = [.alert, .badge, .sound]
+        UNUserNotificationCenter.current().requestAuthorization(
+          options: authOptions,
+          completionHandler: { _, _ in }
+        )
 
+        
+        let doneAction = UNNotificationAction(identifier: NotificationAction.doneAction.rawValue, title: "Done",options: [.foreground])
+        
+        let cancelAction = UNNotificationAction(identifier: NotificationAction.cancelAction.rawValue, title: "Cancel",options: [])
+        
+        let demoApnCategory = UNNotificationCategory(identifier: "demoApnCategory", actions: [doneAction,cancelAction], intentIdentifiers: [],options: .customDismissAction)
+        
+        UNUserNotificationCenter.current().setNotificationCategories([demoApnCategory])
+        UIApplication.shared.registerForRemoteNotifications()
+
+      }
+
+    func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse) async {
+        switch NotificationAction(rawValue: response.actionIdentifier){
+        case.doneAction:
+            let storyboard = UIStoryboard(name: "Main", bundle: nil)
+            let registerStoryBoard = storyboard.instantiateViewController(withIdentifier: "RegisterViewController") as! RegisterViewController
+            UIApplication.shared.windows.first?.rootViewController = registerStoryBoard
+          print("window")
+        case .cancelAction:
+            print("dedec")
+        case .none:
+            break
+        }
+    }
+    
+    enum NotificationAction: String {
+        case doneAction = "APN.doneAction"
+        case cancelAction = "APN.cancelAction"
+    }
 }
 
